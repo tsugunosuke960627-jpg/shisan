@@ -1,0 +1,1840 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>マイアセット</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png" type="image/png">
+<meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="マイアセット">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="description" content="手入力した資産をグラフで確認する、端末内保存の資産管理アプリ">
+<style>
+  :root {
+    color-scheme: light;
+    --page:           #f9f9f7;
+    --surface-1:      #fcfcfb;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --axis:           #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --wash:           rgba(11,11,11,0.04);
+    --wash-strong:    rgba(11,11,11,0.08);
+    --series-1:       #2a78d6;
+    --series-2:       #eb6834;
+    --series-3:       #1baf7a;
+    --series-4:       #e34948;
+    --up:             #006300;
+    --down:           #d03b3b;
+    --focus:          #2a78d6;
+    --shadow:         0 8px 28px rgba(11,11,11,.16);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page:           #0d0d0d;
+      --surface-1:      #1a1a19;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --grid:           #2c2c2a;
+      --axis:           #383835;
+      --border:         rgba(255,255,255,0.10);
+      --wash:           rgba(255,255,255,0.05);
+      --wash-strong:    rgba(255,255,255,0.10);
+      --series-1:       #3987e5;
+      --series-2:       #d95926;
+      --series-3:       #199e70;
+      --series-4:       #e66767;
+      --up:             #0ca30c;
+      --down:           #d03b3b;
+      --focus:          #3987e5;
+      --shadow:         0 8px 28px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:           #0d0d0d;
+    --surface-1:      #1a1a19;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --axis:           #383835;
+    --border:         rgba(255,255,255,0.10);
+    --wash:           rgba(255,255,255,0.05);
+    --wash-strong:    rgba(255,255,255,0.10);
+    --series-1:       #3987e5;
+    --series-2:       #d95926;
+    --series-3:       #199e70;
+    --series-4:       #e66767;
+    --up:             #0ca30c;
+    --down:           #d03b3b;
+    --focus:          #3987e5;
+    --shadow:         0 8px 28px rgba(0,0,0,.5);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 16px 72px; }
+
+  /* ---------- header ---------- */
+  .topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .brand-mark { width: 26px; height: 26px; border-radius: 7px; flex: 0 0 auto; display: block; }
+  .brand h1 { font-size: 19px; font-weight: 650; margin: 0; letter-spacing: .01em; white-space: nowrap; }
+  .topbar .spacer { flex: 1 1 auto; }
+
+  .menu-wrap { position: relative; flex: 0 0 auto; }
+  .icon-btn {
+    width: 38px; height: 38px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 4px;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 9px; cursor: pointer;
+  }
+  .icon-btn:hover { background: var(--wash); }
+  .icon-btn i { display: block; width: 16px; height: 1.5px; background: var(--text-primary); border-radius: 1px; }
+  .menu {
+    position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; min-width: 208px;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 11px;
+    box-shadow: var(--shadow); padding: 6px; overflow: hidden;
+  }
+  .menu[hidden] { display: none; }
+  .menu-h { font-size: 11px; color: var(--text-muted); padding: 6px 10px 5px; }
+  .menu-item {
+    display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+    background: none; border: 0; border-radius: 8px; padding: 9px 10px;
+    font-size: 14px; color: var(--text-primary); cursor: pointer;
+  }
+  .menu-item:hover { background: var(--wash); }
+  .menu-item .ck { width: 16px; font-size: 16px; font-weight: 700; color: var(--text-primary); visibility: hidden; }
+  .menu-item[aria-checked="true"] { font-weight: 600; }
+  .menu-item[aria-checked="true"] .ck { visibility: visible; }
+
+  button, select, input, textarea { font: inherit; color: inherit; }
+  .btn {
+    background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 12px; cursor: pointer; font-size: 13px; line-height: 1.4;
+  }
+  .btn:hover { background: var(--wash); }
+  .btn:active { background: var(--wash-strong); }
+  .btn.primary { background: var(--series-1); border-color: transparent; color: #fff; font-weight: 550; }
+  .btn.primary:hover { filter: brightness(1.07); }
+  .btn.danger { color: var(--down); border-color: var(--border); }
+  .btn.small { padding: 3px 9px; font-size: 12px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  /* ---------- tabs ---------- */
+  nav.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 20px; overflow-x: auto; }
+  nav.tabs button {
+    background: none; border: 0; border-bottom: 2px solid transparent;
+    padding: 9px 14px; cursor: pointer; font-size: 14px; color: var(--text-secondary);
+    white-space: nowrap; margin-bottom: -1px;
+  }
+  nav.tabs button:hover { color: var(--text-primary); }
+  nav.tabs button[aria-selected="true"] { color: var(--text-primary); font-weight: 600; border-bottom-color: var(--series-1); }
+
+  /* ---------- cards ---------- */
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 16px; position: relative;
+  }
+  .card > h2 { font-size: 14px; font-weight: 600; margin: 0 0 2px; letter-spacing: .01em; }
+  .card > .caption { font-size: 12px; color: var(--text-muted); margin: 0 0 14px; }
+  .card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .card-head > div { flex: 1 1 auto; min-width: 0; }
+  .card-head h2 { font-size: 14px; font-weight: 600; margin: 0; }
+
+  /* ---------- hero + tiles ---------- */
+  .hero-label { font-size: 12px; color: var(--text-muted); margin: 0 0 2px; }
+  .hero-value { font-size: 44px; font-weight: 640; line-height: 1.1; letter-spacing: -.015em; }
+  .hero-delta { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+  .hero-break { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .delta-up { color: var(--up); font-weight: 600; }
+  .delta-down { color: var(--down); font-weight: 600; }
+  .delta-flat { color: var(--text-muted); font-weight: 600; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .tile .k { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+  .tile .v { font-size: 21px; font-weight: 620; line-height: 1.2; }
+  .tile .m { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+
+  /* ---------- filter row ---------- */
+  .filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .filters .lbl { font-size: 12px; color: var(--text-muted); }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface-1); }
+  .seg button { background: none; border: 0; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--text-secondary); }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button:hover { background: var(--wash); }
+  .seg button[aria-pressed="true"] { background: var(--wash-strong); color: var(--text-primary); font-weight: 600; }
+
+  /* ---------- charts ---------- */
+  .chart-host { position: relative; }
+  .chart-wrap { display: flex; align-items: flex-start; }
+  .y-axis { flex: 0 0 auto; }
+  .scroll-x { overflow-x: auto; overflow-y: hidden; flex: 1 1 auto; min-width: 0; -webkit-overflow-scrolling: touch; }
+  svg { display: block; }
+  svg text { font-family: inherit; }
+  .tick-text { font-size: 11px; fill: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .cap-text { font-size: 11px; fill: var(--text-secondary); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .band { fill: transparent; cursor: pointer; }
+  .band.sel { fill: var(--wash); }
+  .seg-mark { transition: opacity .1s; }
+  .hovered .seg-mark { opacity: .55; }
+  .hovered .seg-mark.on { opacity: 1; }
+
+  .tooltip {
+    position: absolute; z-index: 5; pointer-events: none; opacity: 0;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 9px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.14); padding: 9px 11px; min-width: 156px;
+    font-size: 12px; transition: opacity .08s;
+  }
+  .tooltip.show { opacity: 1; }
+  .tooltip .tt-h { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+  .tooltip .tt-r { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
+  .tooltip .tt-k { width: 12px; height: 2px; border-radius: 1px; flex: 0 0 auto; }
+  .tooltip .tt-n { color: var(--text-secondary); flex: 1 1 auto; white-space: nowrap; }
+  .tooltip .tt-v { font-weight: 640; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tooltip .tt-t { border-top: 1px solid var(--border); margin-top: 7px; padding-top: 6px; }
+
+  /* ---------- legend / breakdown ---------- */
+  .donut-row { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .donut-row .chart-host { flex: 0 0 auto; margin: 0 auto; }
+  .legend-table { flex: 1 1 260px; min-width: 240px; border-collapse: collapse; font-size: 13px; }
+  .legend-table th { text-align: left; font-size: 11px; font-weight: 500; color: var(--text-muted); padding: 0 0 6px; border-bottom: 1px solid var(--border); }
+  .legend-table th.num, .legend-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .legend-table td { padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .legend-table tr:last-child td { border-bottom: 0; }
+  .legend-table td.name { display: flex; align-items: center; gap: 8px; }
+  .legend-table tfoot td { font-weight: 640; border-top: 1px solid var(--axis); border-bottom: 0; padding-top: 9px; }
+  .legend-table tfoot tr.sub td { font-weight: 500; border-top: 0; padding-top: 2px; color: var(--text-secondary); }
+  .legend-table tfoot tr.net td { border-top: 1px solid var(--border); padding-top: 7px; }
+
+  /* ---------- 切り替え時に下から伸びるアニメーション ---------- */
+  @keyframes growUp { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  /* 速度 0.8倍 = 所要時間 1.25倍（.42s → .525s、遅延 18ms → 22ms） */
+  .grow {
+    transform-box: view-box;
+    animation: growUp .525s cubic-bezier(.22,.85,.3,1) backwards;
+  }
+  .fadein { animation: fadeIn .625s ease .25s backwards; }
+  @media (prefers-reduced-motion: reduce) {
+    .grow, .fadein { animation: none; }
+  }
+
+  /* ---------- forms ---------- */
+  .field { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  label.fl { font-size: 12px; color: var(--text-secondary); }
+  input[type="text"], input[type="month"], select {
+    background: var(--page); border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 10px; max-width: 100%;
+  }
+  input[type="text"]:focus, input[type="month"]:focus, select:focus { border-color: var(--focus); }
+  input.yen { text-align: right; font-variant-numeric: tabular-nums; width: 152px; }
+  .grp { margin-top: 18px; }
+  .grp-h { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--text-secondary); padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .grp-h .gt { margin-left: auto; font-weight: 500; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .row:last-child { border-bottom: 0; }
+  .row .rn { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+  .sum-bar { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--axis); }
+  .sum-line { display: flex; align-items: baseline; gap: 10px; }
+  .sum-line + .sum-line { margin-top: 4px; }
+  .sum-line .sl { font-size: 12px; color: var(--text-muted); }
+  .sum-line .sv { margin-left: auto; font-variant-numeric: tabular-nums; font-size: 14px; }
+  .sum-line.total .sl { color: var(--text-secondary); }
+  .sum-line.total .sv { font-size: 22px; font-weight: 620; }
+
+  .note { font-size: 12px; color: var(--text-muted); margin: 10px 0 0; }
+  .banner { border: 1px solid var(--border); border-left: 3px solid var(--down); border-radius: 8px; background: var(--surface-1); padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
+  .empty { text-align: center; padding: 32px 16px; }
+  .empty p { color: var(--text-secondary); font-size: 14px; margin: 0 0 16px; }
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(8px);
+    background: var(--text-primary); color: var(--page); font-size: 13px; padding: 8px 16px;
+    border-radius: 999px; opacity: 0; pointer-events: none; transition: opacity .16s, transform .16s; z-index: 50;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .hint { font-size: 12px; color: var(--text-muted); }
+
+  /* ---------- 確認ダイアログ ---------- */
+  .modal-bg {
+    position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.42);
+    display: flex; align-items: center; justify-content: center;
+    padding: max(16px, env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+  }
+  .modal {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: var(--shadow); width: 100%; max-width: 440px; max-height: 84vh;
+    overflow-y: auto; padding: 20px 22px;
+  }
+  .modal h2 { font-size: 15px; font-weight: 650; margin: 0 0 3px; }
+  .modal .lead { font-size: 12px; color: var(--text-muted); margin: 0 0 16px; }
+  .stamps { display: flex; gap: 10px; margin-bottom: 16px; }
+  .stamp { flex: 1 1 0; border: 1px solid var(--border); border-radius: 9px; padding: 9px 11px; min-width: 0; }
+  .stamp .sk { font-size: 11px; color: var(--text-muted); }
+  .stamp .sv { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stamp.newer { border-color: var(--series-1); }
+  .stamp .tag { font-size: 10px; color: var(--series-1); font-weight: 700; }
+  .diff { border-top: 1px solid var(--border); }
+  .diff .dr { display: flex; align-items: baseline; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .diff .dn { margin-left: auto; font-weight: 640; font-variant-numeric: tabular-nums; }
+  .diff .dr .dd { font-size: 11px; color: var(--text-muted); flex-basis: 100%; margin-top: -4px; }
+  .modal .acts { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+  .modal .acts .btn { width: 100%; text-align: center; padding: 10px 14px; font-size: 14px; }
+
+  @media (max-width: 680px) {
+    .hero-value { font-size: 34px; }
+    .wrap { padding-top: 16px; }
+  }
+
+  /* ---------- iOS / ホーム画面アプリ向け ---------- */
+  body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+  .wrap {
+    padding-left:  max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+  .toast { bottom: calc(24px + env(safe-area-inset-bottom)); }
+  button, .btn, nav.tabs button, .seg button { touch-action: manipulation; }
+  /* iOS は 16px 未満の入力欄にフォーカスすると画面を勝手に拡大する。16px を下回らせない */
+  input[type="text"], input[type="month"], input[type="file"], select, textarea { font-size: 16px; }
+  @media (pointer: coarse) {
+    .btn { padding: 9px 14px; }
+    .btn.small { padding: 7px 12px; }
+    nav.tabs button { padding: 12px 14px; }
+    .seg button { padding: 9px 14px; }
+    .row { padding: 10px 0; }
+  }
+
+  @media print {
+    body { background: #fff; }
+    nav.tabs, .filters, .btn, .menu-wrap { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 512 512" aria-hidden="true">
+        <rect width="512" height="512" fill="#0d0d0d"/>
+        <g transform="translate(256,256)">
+          <path d="M2.17,-165.99 A166,166 0 0 1 43.48,160.20 L31.43,115.81 A120,120 0 0 0 1.57,-119.99 Z" fill="#3987e5"/>
+          <path d="M39.24,161.30 A166,166 0 0 1 -163.44,-28.97 L-118.15,-20.94 A120,120 0 0 0 28.37,116.60 Z" fill="#d95926"/>
+          <path d="M-162.67,-33.10 A166,166 0 0 1 -2.17,-165.99 L-1.57,-119.99 A120,120 0 0 0 -117.59,-23.92 Z" fill="#199e70"/>
+          <text x="0" y="54" text-anchor="middle" fill="#fcfcfb"
+                style="font:650 156px system-ui,-apple-system,'Segoe UI',sans-serif">¥</text>
+        </g>
+      </svg>
+      <h1>マイアセット</h1>
+    </div>
+    <span class="spacer"></span>
+    <div class="menu-wrap">
+      <button class="icon-btn" id="menuBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="メニュー">
+        <i></i><i></i><i></i>
+      </button>
+      <div class="menu" id="menu" role="menu" aria-label="メニュー" hidden>
+        <div class="menu-h">テーマ</div>
+        <button class="menu-item" type="button" role="menuitemradio" data-theme="auto"  aria-checked="true"><span class="ck">✓</span>端末の設定に合わせる</button>
+        <button class="menu-item" type="button" role="menuitemradio" data-theme="light" aria-checked="false"><span class="ck">✓</span>ライト</button>
+        <button class="menu-item" type="button" role="menuitemradio" data-theme="dark"  aria-checked="false"><span class="ck">✓</span>ダーク</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="storageWarn" class="banner" style="display:none">
+    このブラウザではデータを保存できません（プライベートモードや設定によるもの）。
+    入力した内容はタブを閉じると消えます。「データ」タブのエクスポートで手元に保存してください。
+  </div>
+
+  <nav class="tabs" role="tablist">
+    <button type="button" role="tab" data-tab="dash"  aria-selected="true">ダッシュボード</button>
+    <button type="button" role="tab" data-tab="input" aria-selected="false">残高を入力</button>
+    <button type="button" role="tab" data-tab="acct"  aria-selected="false">口座・銘柄</button>
+    <button type="button" role="tab" data-tab="data"  aria-selected="false">データ</button>
+  </nav>
+
+  <main id="view"></main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================== 定数 ============================== */
+
+  var LS_DATA  = "shisan-tracker-v1";
+  var LS_THEME = "shisan-tracker-theme";
+
+  /* 資産3種は dataviz 既定パレットのスロット1〜3（全ペアで色覚安全性を検証済み）。
+     負債はグラフに描かず、タイルと表のスウォッチにしか出ないため、
+     隣接ペアの制約がかからないスロット8（赤）を充てている。 */
+  var CATS = [
+    { key: "cash",    label: "現金・預金",         v: "--series-1", debt: false },
+    { key: "equity",  label: "株式・投資信託・ETF", v: "--series-2", debt: false },
+    { key: "pension", label: "年金・保険",         v: "--series-3", debt: false },
+    { key: "debt",    label: "負債",              v: "--series-4", debt: true  }
+  ];
+  var ASSET_CATS = CATS.filter(function (c) { return !c.debt; });
+  var CAT_BY_KEY = {};
+  CATS.forEach(function (c) { CAT_BY_KEY[c.key] = c; });
+
+  /* ============================== 保存 ============================== */
+
+  var storageOK = (function () {
+    try {
+      localStorage.setItem("__t", "1");
+      localStorage.removeItem("__t");
+      return true;
+    } catch (e) { return false; }
+  })();
+
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+  function uid() {
+    return "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  function defaultState() {
+    return {
+      version: 2,
+      updatedAt: new Date().toISOString(),  /* データ全体の最終更新 */
+      touched: {},                          /* 月ごとの最終編集時刻（マージの判定に使う） */
+      accounts: [
+        { id: uid(), name: "普通預金", cat: "cash" },
+        { id: uid(), name: "つみたてNISA", cat: "equity" },
+        { id: uid(), name: "iDeCo", cat: "pension" }
+      ],
+      months: {}
+    };
+  }
+
+  function sanitize(raw) {
+    var s = defaultState();
+    if (!raw || typeof raw !== "object") return s;
+    s.accounts = [];
+    if (Array.isArray(raw.accounts)) {
+      raw.accounts.forEach(function (a) {
+        if (!a || typeof a !== "object") return;
+        var name = typeof a.name === "string" ? a.name.slice(0, 60) : "";
+        if (!name) return;
+        s.accounts.push({
+          id: typeof a.id === "string" && a.id ? a.id : uid(),
+          name: name,
+          cat: CAT_BY_KEY[a.cat] ? a.cat : "cash"
+        });
+      });
+    }
+    s.months = {};
+    if (raw.months && typeof raw.months === "object") {
+      Object.keys(raw.months).forEach(function (mk) {
+        if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mk)) return;
+        var src = raw.months[mk], dst = {};
+        if (src && typeof src === "object") {
+          Object.keys(src).forEach(function (id) {
+            var n = Number(src[id]);
+            if (isFinite(n) && n !== 0) dst[id] = Math.round(n);
+          });
+        }
+        if (Object.keys(dst).length) s.months[mk] = dst;
+      });
+    }
+    s.updatedAt = (typeof raw.updatedAt === "string" && !isNaN(Date.parse(raw.updatedAt)))
+      ? raw.updatedAt : null;
+    s.touched = {};
+    if (raw.touched && typeof raw.touched === "object") {
+      Object.keys(raw.touched).forEach(function (mk) {
+        var t = Number(raw.touched[mk]);
+        if (/^\d{4}-(0[1-9]|1[0-2])$/.test(mk) && isFinite(t) && t > 0) s.touched[mk] = t;
+      });
+    }
+    return s;
+  }
+
+  var state;
+  (function load() {
+    var raw = lsGet(LS_DATA);
+    if (!raw) { state = defaultState(); return; }
+    try { state = sanitize(JSON.parse(raw)); }
+    catch (e) { state = defaultState(); return; }
+    /* 旧版のデータには時刻が無い。手元のものを「現在時点」とみなして起点を作る */
+    if (!state.updatedAt) { state.updatedAt = new Date().toISOString(); save(); }
+  })();
+
+  var saveTimer = null;
+  function save() {
+    state.updatedAt = new Date().toISOString();
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () {
+      lsSet(LS_DATA, JSON.stringify(state));
+    }, 120);
+  }
+  /* その月を編集したことを記録する。マージでどちらが新しいかの判定に使う */
+  function touch(mk) {
+    if (!state.touched) state.touched = {};
+    state.touched[mk] = Date.now();
+  }
+  function fmtStamp(iso) {
+    if (!iso) return "不明";
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "不明";
+    var p = function (n) { return (n < 10 ? "0" : "") + n; };
+    return d.getFullYear() + "/" + p(d.getMonth() + 1) + "/" + p(d.getDate()) +
+           " " + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+
+  /* ============================== 派生値 ============================== */
+
+  function monthKeys() {
+    return Object.keys(state.months).filter(function (k) {
+      return Object.keys(state.months[k]).length > 0;
+    }).sort();
+  }
+  function pruneMonth(mk) {
+    if (state.months[mk] && Object.keys(state.months[mk]).length === 0) delete state.months[mk];
+  }
+  function acctById(id) {
+    for (var i = 0; i < state.accounts.length; i++) {
+      if (state.accounts[i].id === id) return state.accounts[i];
+    }
+    return null;
+  }
+  function catTotal(mk, catKey) {
+    var vals = state.months[mk];
+    if (!vals) return 0;
+    var t = 0;
+    for (var id in vals) {
+      if (!Object.prototype.hasOwnProperty.call(vals, id)) continue;
+      var a = acctById(id);
+      if (a && a.cat === catKey) t += vals[id];
+    }
+    return t;
+  }
+  /* 資産合計（負債を含まない）。グラフの縦軸はすべてこれ */
+  function assetTotal(mk) {
+    var t = 0;
+    ASSET_CATS.forEach(function (c) { t += catTotal(mk, c.key); });
+    return t;
+  }
+  function debtTotal(mk) { return catTotal(mk, "debt"); }
+  function netTotal(mk) { return assetTotal(mk) - debtTotal(mk); }
+  /* 表示期間内に負債が1円でもあるか。無ければ負債の列・行を出さない */
+  function anyDebt(months) {
+    for (var i = 0; i < months.length; i++) { if (debtTotal(months[i]) !== 0) return true; }
+    return false;
+  }
+  function prevMonthKey(mk) {
+    var y = +mk.slice(0, 4), m = +mk.slice(5, 7) - 1;
+    if (m === 0) { y -= 1; m = 12; }
+    return y + "-" + (m < 10 ? "0" : "") + m;
+  }
+  function thisMonthKey() {
+    var d = new Date(), m = d.getMonth() + 1;
+    return d.getFullYear() + "-" + (m < 10 ? "0" : "") + m;
+  }
+
+  /* ============================== 表示整形 ============================== */
+
+  function yen(n) {
+    var s = Math.abs(Math.round(n)).toLocaleString("ja-JP");
+    return (n < 0 ? "−¥" : "¥") + s;
+  }
+  function signedYen(n) {
+    if (n === 0) return "±¥0";
+    return (n > 0 ? "+¥" : "−¥") + Math.abs(Math.round(n)).toLocaleString("ja-JP");
+  }
+  function axisUnit(max) {
+    if (max >= 100000000) return { div: 100000000, suf: "億" };
+    if (max >= 10000) return { div: 10000, suf: "万" };
+    return { div: 1, suf: "" };
+  }
+  function fmtAxis(v, u) {
+    if (v === 0) return "0";
+    var x = v / u.div;
+    var s = (Math.abs(x) < 10 && x % 1 !== 0) ? x.toFixed(1) : String(Math.round(x));
+    return Number(s).toLocaleString("ja-JP") + u.suf;
+  }
+  function monthLabel(mk) {
+    return mk.slice(0, 4) + "年" + (+mk.slice(5, 7)) + "月";
+  }
+  function monthTick(mk) {
+    return mk.slice(2, 4) + "/" + mk.slice(5, 7);
+  }
+  function pct(part, whole) {
+    if (!whole) return "—";
+    return (Math.round(part / whole * 1000) / 10).toFixed(1) + "%";
+  }
+
+  /* ============================== DOM ヘルパ ============================== */
+
+  function h(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        if (k === "text") n.textContent = attrs[k];
+        else if (k === "cls") n.className = attrs[k];
+        else if (k === "style") n.setAttribute("style", attrs[k]);
+        else if (k.slice(0, 2) === "on") n.addEventListener(k.slice(2), attrs[k]);
+        else if (attrs[k] !== null && attrs[k] !== undefined) n.setAttribute(k, attrs[k]);
+      });
+    }
+    (kids || []).forEach(function (c) { if (c) n.appendChild(c); });
+    return n;
+  }
+  var NS = "http://www.w3.org/2000/svg";
+  function s(tag, attrs, kids) {
+    var n = document.createElementNS(NS, tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        if (k === "text") n.textContent = attrs[k];
+        else if (k.slice(0, 2) === "on") n.addEventListener(k.slice(2), attrs[k]);
+        else if (attrs[k] !== null && attrs[k] !== undefined) n.setAttribute(k, attrs[k]);
+      });
+    }
+    (kids || []).forEach(function (c) { if (c) n.appendChild(c); });
+    return n;
+  }
+  function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+
+  var toastTimer = null;
+  function toast(msg) {
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove("show"); }, 1900);
+  }
+
+  /* 確認ダイアログ。actions は [{label, cls, onClick}]。onClick 後に自動で閉じる */
+  function modal(opts) {
+    var bg = h("div", { cls: "modal-bg" });
+    var box = h("div", { cls: "modal", role: "dialog", "aria-modal": "true", "aria-label": opts.title });
+    box.appendChild(h("h2", { text: opts.title }));
+    if (opts.lead) box.appendChild(h("p", { cls: "lead", text: opts.lead }));
+    (opts.body || []).forEach(function (n) { box.appendChild(n); });
+
+    var acts = h("div", { cls: "acts" });
+    var first = null;
+    (opts.actions || []).forEach(function (a) {
+      var b = h("button", {
+        cls: "btn" + (a.cls ? " " + a.cls : ""), type: "button", text: a.label,
+        onclick: function () { close(); if (a.onClick) a.onClick(); }
+      });
+      if (!first) first = b;
+      acts.appendChild(b);
+    });
+    box.appendChild(acts);
+    bg.appendChild(box);
+
+    function onKey(e) { if (e.key === "Escape") { close(); if (opts.onCancel) opts.onCancel(); } }
+    function close() {
+      document.removeEventListener("keydown", onKey);
+      if (bg.parentNode) bg.parentNode.removeChild(bg);
+    }
+    bg.addEventListener("click", function (e) {
+      if (e.target === bg) { close(); if (opts.onCancel) opts.onCancel(); }
+    });
+    document.addEventListener("keydown", onKey);
+    document.body.appendChild(bg);
+    if (first) first.focus();
+  }
+
+  function deltaSpan(d, downIsGood) {
+    if (d === 0) return h("span", { cls: "delta-flat", text: "±¥0" });
+    var good = downIsGood ? (d < 0) : (d > 0);
+    return h("span", { cls: good ? "delta-up" : "delta-down", text: signedYen(d) });
+  }
+  function swatch(cssVar) {
+    return h("span", { cls: "swatch", style: "background:var(" + cssVar + ")" });
+  }
+
+  /* ============================== テーマ / メニュー ============================== */
+
+  var themeMode = lsGet(LS_THEME) || "auto";
+  var menuBtn = document.getElementById("menuBtn");
+  var menuEl = document.getElementById("menu");
+
+  function applyTheme() {
+    if (themeMode === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", themeMode);
+    Array.prototype.forEach.call(menuEl.querySelectorAll("[data-theme]"), function (b) {
+      b.setAttribute("aria-checked", b.getAttribute("data-theme") === themeMode ? "true" : "false");
+    });
+  }
+  function openMenu(open) {
+    menuEl.hidden = !open;
+    menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  menuBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    openMenu(menuEl.hidden);
+  });
+  Array.prototype.forEach.call(menuEl.querySelectorAll("[data-theme]"), function (b) {
+    b.addEventListener("click", function () {
+      themeMode = b.getAttribute("data-theme");
+      lsSet(LS_THEME, themeMode);
+      applyTheme();
+      openMenu(false);
+      menuBtn.focus();
+    });
+  });
+  document.addEventListener("click", function (e) {
+    if (!menuEl.hidden && !menuEl.contains(e.target) && e.target !== menuBtn) openMenu(false);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !menuEl.hidden) { openMenu(false); menuBtn.focus(); }
+  });
+  applyTheme();
+
+  /* ============================== 画面状態 ============================== */
+
+  var ui = {
+    tab: "dash",
+    range: 12,          /* 6 | 12 | 0(=全期間)。月別のときだけ効く */
+    gran: "month",      /* "month" | "year" */
+    animate: false,     /* 月別⇔年別を切り替えた直後だけ true */
+    selMonth: null,
+    inputMonth: null
+  };
+
+  /* ダッシュボードが対象にする月。年別のときは期間で絞らず全期間を見る */
+  function scopeMonths() {
+    var all = monthKeys();
+    if (ui.gran === "year" || !ui.range || all.length <= ui.range) return all;
+    return all.slice(all.length - ui.range);
+  }
+  function resolveSelMonth() {
+    var vis = scopeMonths();
+    if (!vis.length) { ui.selMonth = null; return; }
+    if (vis.indexOf(ui.selMonth) === -1) ui.selMonth = vis[vis.length - 1];
+  }
+
+  /* グラフの1本ぶん。月別はその月、年別はその年の最後に記録がある月を代表値にする
+     （残高はストック量なので、年の合計ではなく年末時点の残高が意味を持つ） */
+  function trendPoints() {
+    if (ui.gran === "year") {
+      var byYear = {};
+      monthKeys().forEach(function (mk) { byYear[mk.slice(0, 4)] = mk; });  /* 昇順なので最後が残る */
+      return Object.keys(byYear).sort().map(function (yy) {
+        var mk = byYear[yy];
+        return {
+          key: yy, label: yy, full: yy + "年",
+          sub: (+mk.slice(5, 7)) + "月時点", mk: mk,
+          sel: !!ui.selMonth && ui.selMonth.slice(0, 4) === yy
+        };
+      });
+    }
+    return scopeMonths().map(function (mk) {
+      return {
+        key: mk, label: monthTick(mk), full: monthLabel(mk),
+        sub: "", mk: mk, sel: mk === ui.selMonth
+      };
+    });
+  }
+
+  /* ============================== ドーナツ（資産のみ） ============================== */
+
+  function arcPath(cx, cy, rOut, rIn, a0, a1) {
+    var p = function (r, a) { return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
+    var large = (a1 - a0) > Math.PI ? 1 : 0;
+    var o0 = p(rOut, a0), o1 = p(rOut, a1), i1 = p(rIn, a1), i0 = p(rIn, a0);
+    return "M" + o0[0].toFixed(2) + "," + o0[1].toFixed(2) +
+           "A" + rOut + "," + rOut + " 0 " + large + " 1 " + o1[0].toFixed(2) + "," + o1[1].toFixed(2) +
+           "L" + i1[0].toFixed(2) + "," + i1[1].toFixed(2) +
+           "A" + rIn + "," + rIn + " 0 " + large + " 0 " + i0[0].toFixed(2) + "," + i0[1].toFixed(2) + "Z";
+  }
+
+  function renderDonut(host, mk) {
+    clear(host);
+    var total = assetTotal(mk);
+    var parts = ASSET_CATS.map(function (c) {
+      return { cat: c, value: catTotal(mk, c.key) };
+    }).filter(function (p) { return p.value > 0; });
+
+    var W = 260, H = 260, cx = W / 2, cy = H / 2, rOut = 104, rIn = 66, rMid = (rOut + rIn) / 2;
+    var svg = s("svg", {
+      viewBox: "0 0 " + W + " " + H, width: W, height: H,
+      role: "img",
+      "aria-label": monthLabel(mk) + "の資産内訳。資産合計 " + yen(total) + "。" +
+        parts.map(function (p) { return p.cat.label + " " + yen(p.value) + "、" + pct(p.value, total); }).join("。")
+    });
+
+    var gMarks = s("g");
+    svg.appendChild(gMarks);
+
+    if (!parts.length) {
+      svg.appendChild(s("circle", {
+        cx: cx, cy: cy, r: rMid, fill: "none",
+        stroke: "var(--grid)", "stroke-width": rOut - rIn
+      }));
+    } else if (parts.length === 1) {
+      gMarks.appendChild(s("circle", {
+        cx: cx, cy: cy, r: rMid, fill: "none",
+        stroke: "var(" + parts[0].cat.v + ")", "stroke-width": rOut - rIn,
+        "class": "seg-mark", "data-i": 0
+      }));
+    } else {
+      var pad = 2 / rMid;            /* 中央半径で約2px のサーフェス隙間 */
+      var a = -Math.PI / 2;
+      parts.forEach(function (p, i) {
+        var sweep = p.value / total * Math.PI * 2;
+        var a0 = a, a1 = a + sweep;
+        if (sweep > pad * 2.5) { a0 += pad / 2; a1 -= pad / 2; }
+        gMarks.appendChild(s("path", {
+          d: arcPath(cx, cy, rOut, rIn, a0, a1),
+          fill: "var(" + p.cat.v + ")",
+          "class": "seg-mark", "data-i": i
+        }));
+        a = a + sweep;
+      });
+    }
+
+    svg.appendChild(s("text", {
+      x: cx, y: cy - 8, "text-anchor": "middle",
+      style: "font-size:11px;fill:var(--text-muted)", text: monthLabel(mk)
+    }));
+    svg.appendChild(s("text", {
+      x: cx, y: cy + 13, "text-anchor": "middle",
+      style: "font-size:17px;font-weight:620;fill:var(--text-primary)", text: yen(total)
+    }));
+
+    /* 直接ラベル: 5%以上のセグメントに構成比のみ（名称と金額は右の表が持つ） */
+    if (parts.length > 1) {
+      var aa = -Math.PI / 2;
+      parts.forEach(function (p) {
+        var sweep = p.value / total * Math.PI * 2;
+        var mid = aa + sweep / 2;
+        aa += sweep;
+        if (p.value / total < 0.05) return;
+        var lx = cx + rMid * Math.cos(mid);
+        var ly = cy + rMid * Math.sin(mid);
+        /* 塗りの上のラベルは輝度で選ぶ。3色いずれもインクの方がコントラストが高い */
+        svg.appendChild(s("text", {
+          x: lx.toFixed(1), y: (ly + 4).toFixed(1), "text-anchor": "middle",
+          style: "font-size:11px;font-weight:650;pointer-events:none;fill:#0b0b0b",
+          text: Math.round(p.value / total * 100) + "%"
+        }));
+      });
+    }
+
+    host.appendChild(svg);
+
+    var tip = h("div", { cls: "tooltip" });
+    host.appendChild(tip);
+
+    function showTip(p, clientX, clientY) {
+      clear(tip);
+      tip.appendChild(h("div", { cls: "tt-h", text: monthLabel(mk) }));
+      tip.appendChild(h("div", { cls: "tt-r" }, [
+        h("span", { cls: "tt-k", style: "background:var(" + p.cat.v + ")" }),
+        h("span", { cls: "tt-n", text: p.cat.label }),
+        h("span", { cls: "tt-v", text: yen(p.value) })
+      ]));
+      tip.appendChild(h("div", { cls: "tt-r tt-t" }, [
+        h("span", { cls: "tt-n", text: "構成比" }),
+        h("span", { cls: "tt-v", text: pct(p.value, total) })
+      ]));
+      var hr = host.getBoundingClientRect();
+      var x = clientX - hr.left + 14, y = clientY - hr.top + 12;
+      x = Math.max(0, Math.min(x, hr.width - tip.offsetWidth - 2));
+      tip.style.left = x + "px";
+      tip.style.top = y + "px";
+      tip.classList.add("show");
+      svg.classList.add("hovered");
+    }
+    function hideTip() { tip.classList.remove("show"); svg.classList.remove("hovered"); }
+
+    Array.prototype.forEach.call(gMarks.childNodes, function (node) {
+      var p = parts[+node.getAttribute("data-i")];
+      node.setAttribute("tabindex", "0");
+      node.setAttribute("role", "img");
+      node.setAttribute("aria-label", p.cat.label + " " + yen(p.value) + "、構成比 " + pct(p.value, total));
+      node.addEventListener("pointermove", function (e) {
+        Array.prototype.forEach.call(gMarks.childNodes, function (o) { o.classList.remove("on"); });
+        node.classList.add("on");
+        showTip(p, e.clientX, e.clientY);
+      });
+      node.addEventListener("pointerleave", hideTip);
+      node.addEventListener("focus", function () {
+        Array.prototype.forEach.call(gMarks.childNodes, function (o) { o.classList.remove("on"); });
+        node.classList.add("on");
+        var b = node.getBoundingClientRect();
+        showTip(p, b.left + b.width / 2, b.top + b.height / 2);
+      });
+      node.addEventListener("blur", hideTip);
+    });
+  }
+
+  /* ============================== 総資産推移（資産のみ） ============================== */
+
+  function niceTicks(max) {
+    if (max <= 0) return { max: 1, ticks: [0, 1] };
+    var target = 4;
+    var raw = max / target;
+    var mag = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10));
+    var mult = [1, 2, 2.5, 5, 10];
+    var step = mag * 10;
+    for (var i = 0; i < mult.length; i++) {
+      if (mag * mult[i] >= raw) { step = mag * mult[i]; break; }
+    }
+    var top = Math.ceil(max / step) * step;
+    var ticks = [];
+    for (var v = 0; v <= top + step / 2; v += step) ticks.push(Math.round(v));
+    return { max: top, ticks: ticks };
+  }
+
+  function topRounded(x, y, w, hh, r) {
+    r = Math.min(r, w / 2, hh);
+    return "M" + x + "," + (y + hh) +
+           "L" + x + "," + (y + r) +
+           "Q" + x + "," + y + " " + (x + r) + "," + y +
+           "L" + (x + w - r) + "," + y +
+           "Q" + (x + w) + "," + y + " " + (x + w) + "," + (y + r) +
+           "L" + (x + w) + "," + (y + hh) + "Z";
+  }
+
+  var FIT_POINTS = 12;   /* これ以下なら横スクロールなしで画面に収める */
+
+  function renderTrend(host, points, animate) {
+    clear(host);
+    if (!points.length) return;
+
+    /* PT は単位ラベル「（円）」の居場所。最上段の目盛りと重ならない高さを確保する */
+    var AXIS_W = 54, PR = 14, PT = 30, PB = 30, PLOT_H = 220;
+    var H = PLOT_H + PT + PB;
+    var MIN_BAND = 40;
+    var BASE_Y = PT + PLOT_H;
+
+    var hostW = host.clientWidth || 640;
+    var avail = Math.max(180, hostW - AXIS_W);
+    var innerW = (points.length <= FIT_POINTS)
+      ? Math.max(160, avail - PR)                               /* 12本までは必ず収める */
+      : Math.max(avail - PR, points.length * MIN_BAND);         /* 超えたら横スクロール */
+    var band = innerW / points.length;
+    var barW = Math.min(24, Math.max(9, band - 10));
+
+    var maxTotal = 0;
+    points.forEach(function (p) { maxTotal = Math.max(maxTotal, assetTotal(p.mk)); });
+    var sc = niceTicks(maxTotal);
+    var unit = axisUnit(sc.max);
+    var y = function (v) { return PT + PLOT_H - (v / sc.max) * PLOT_H; };
+
+    var wrap = h("div", { cls: "chart-wrap" });
+
+    /* --- 縦軸は独立した SVG。スクロール領域の外に置くので画面端に固定される --- */
+    var ax = s("svg", {
+      "class": "y-axis", width: AXIS_W, height: H,
+      viewBox: "0 0 " + AXIS_W + " " + H, "aria-hidden": "true"
+    });
+    /* 単位は最上段の目盛り（y = PT + 4）より 19px 上。金額とは重ならない */
+    ax.appendChild(s("text", {
+      x: AXIS_W - 9, y: PT - 15, "text-anchor": "end", "class": "tick-text", text: "（円）"
+    }));
+    sc.ticks.forEach(function (t) {
+      ax.appendChild(s("text", {
+        x: AXIS_W - 9, y: (y(t) + 4).toFixed(1), "text-anchor": "end",
+        "class": "tick-text", text: fmtAxis(t, unit)
+      }));
+    });
+    wrap.appendChild(ax);
+
+    /* --- プロットはスクロール領域の中 --- */
+    var scroller = h("div", { cls: "scroll-x" });
+    var PW = innerW + PR;
+    var aria = (ui.gran === "year" ? "総資産推移（年別）。" : "総資産推移（月別）。") +
+      points.map(function (p) { return p.full + " " + yen(assetTotal(p.mk)); }).join("。");
+    var svg = s("svg", {
+      width: PW, height: H, viewBox: "0 0 " + PW + " " + H,
+      role: "img", "aria-label": aria
+    });
+
+    sc.ticks.forEach(function (t) {
+      var yy = y(t);
+      svg.appendChild(s("line", {
+        x1: 0, x2: innerW, y1: yy.toFixed(1), y2: yy.toFixed(1),
+        stroke: t === 0 ? "var(--axis)" : "var(--grid)", "stroke-width": 1
+      }));
+    });
+
+    var everyN = Math.max(1, Math.ceil((ui.gran === "year" ? 34 : 38) / band));
+    points.forEach(function (p, i) {
+      var isLast = i === points.length - 1;
+      if (!isLast && (points.length - 1 - i) % everyN !== 0) return;
+      svg.appendChild(s("text", {
+        x: (band * i + band / 2).toFixed(1), y: PT + PLOT_H + 17,
+        "text-anchor": "middle", "class": "tick-text", text: p.label
+      }));
+    });
+
+    var bandRects = [];
+    var gBands = s("g");
+    var gMarks = s("g");
+    svg.appendChild(gBands);
+    svg.appendChild(gMarks);
+
+    points.forEach(function (p, i) {
+      var bx = band * i;
+      var r = s("rect", {
+        x: bx.toFixed(1), y: PT, width: band.toFixed(1), height: PLOT_H,
+        "class": "band" + (p.sel ? " sel" : ""),
+        tabindex: "0", role: "button",
+        "aria-label": p.full + " 資産合計 " + yen(assetTotal(p.mk)) + "。選択して内訳を見る"
+      });
+      gBands.appendChild(r);
+      bandRects.push({ p: p, node: r, cx: bx + band / 2 });
+
+      /* 1本ずつ独立した g に入れ、ベースラインを原点に scaleY で下から伸ばす */
+      var gStack = s("g", animate ? {
+        "class": "grow",
+        style: "transform-origin:0px " + BASE_Y + "px;animation-delay:" + (i * 22) + "ms"
+      } : null);
+      gMarks.appendChild(gStack);
+
+      var x = bx + (band - barW) / 2;
+      var cum = 0, drawn = 0;
+      var stack = ASSET_CATS.map(function (c) { return { cat: c, value: catTotal(p.mk, c.key) }; })
+                            .filter(function (q) { return q.value > 0; });
+      stack.forEach(function (q, k) {
+        var yTop = y(cum + q.value), yBot = y(cum);
+        cum += q.value;
+        var top = yTop, bottom = yBot;
+        if (drawn > 0) bottom -= 2;                 /* 2px のサーフェス隙間 */
+        var hh = bottom - top;
+        drawn++;
+        if (hh < 0.75) return;
+        var isTop = (k === stack.length - 1);
+        var node = isTop
+          ? s("path", { d: topRounded(x, top, barW, hh, 4), fill: "var(" + q.cat.v + ")", "class": "seg-mark" })
+          : s("rect", { x: x, y: top.toFixed(2), width: barW, height: hh.toFixed(2), fill: "var(" + q.cat.v + ")", "class": "seg-mark" });
+        node.setAttribute("pointer-events", "none");
+        gStack.appendChild(node);
+      });
+
+      /* 直接ラベル: 右端の1本にだけ合計を置く */
+      if (i === points.length - 1 && cum > 0) {
+        var lbl = fmtAxis(cum, unit) + "円";
+        var half = lbl.length * 4.2;
+        var lx = Math.min(x + barW / 2, PW - 4 - half);
+        svg.appendChild(s("text", {
+          x: lx.toFixed(1), y: (y(cum) - 8).toFixed(1),
+          "text-anchor": "middle", "class": "cap-text" + (animate ? " fadein" : ""), text: lbl
+        }));
+      }
+    });
+
+    scroller.appendChild(svg);
+    wrap.appendChild(scroller);
+    host.appendChild(wrap);
+
+    /* ツールチップ: 列が当たり判定、全系列を一度に出す */
+    var tip = h("div", { cls: "tooltip" });
+    host.appendChild(tip);
+
+    function fill(p) {
+      var mk = p.mk;
+      clear(tip);
+      tip.appendChild(h("div", { cls: "tt-h", text: p.full + (p.sub ? "（" + p.sub + "）" : "") }));
+      ASSET_CATS.forEach(function (c) {
+        var v = catTotal(mk, c.key);
+        if (!v) return;
+        tip.appendChild(h("div", { cls: "tt-r" }, [
+          h("span", { cls: "tt-k", style: "background:var(" + c.v + ")" }),
+          h("span", { cls: "tt-n", text: c.label }),
+          h("span", { cls: "tt-v", text: yen(v) })
+        ]));
+      });
+      tip.appendChild(h("div", { cls: "tt-r tt-t" }, [
+        h("span", { cls: "tt-n", text: "資産合計" }),
+        h("span", { cls: "tt-v", text: yen(assetTotal(mk)) })
+      ]));
+      if (debtTotal(mk)) {
+        tip.appendChild(h("div", { cls: "tt-r" }, [
+          h("span", { cls: "tt-n", text: "純資産" }),
+          h("span", { cls: "tt-v", text: yen(netTotal(mk)) })
+        ]));
+      }
+    }
+    function place(clientX, clientY) {
+      var hr = host.getBoundingClientRect();
+      var x = clientX - hr.left + 14, yy = clientY - hr.top + 12;
+      x = Math.max(0, Math.min(x, hr.width - tip.offsetWidth - 2));
+      yy = Math.min(yy, hr.height - tip.offsetHeight - 2);
+      tip.style.left = x + "px";
+      tip.style.top = Math.max(0, yy) + "px";
+      tip.classList.add("show");
+    }
+    function hide() { tip.classList.remove("show"); }
+
+    bandRects.forEach(function (b) {
+      function pick() { ui.selMonth = b.p.mk; render(); }
+      b.node.addEventListener("pointermove", function (e) { fill(b.p); place(e.clientX, e.clientY); });
+      b.node.addEventListener("pointerleave", hide);
+      b.node.addEventListener("focus", function () {
+        fill(b.p);
+        var r = b.node.getBoundingClientRect();
+        place(r.left + r.width / 2, r.top + 40);
+      });
+      b.node.addEventListener("blur", hide);
+      b.node.addEventListener("click", pick);
+      b.node.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); }
+      });
+    });
+
+    var sel = bandRects.filter(function (b) { return b.p.sel; })[0];
+    if (sel && scroller.scrollWidth > scroller.clientWidth) {
+      scroller.scrollLeft = Math.max(0, sel.cx - scroller.clientWidth / 2);
+    }
+  }
+
+  /* ============================== ダッシュボード ============================== */
+
+  function buildDash() {
+    var frag = document.createDocumentFragment();
+    var all = monthKeys();
+
+    if (!all.length) {
+      frag.appendChild(h("div", { cls: "card" }, [
+        h("div", { cls: "empty" }, [
+          h("p", { text: "まだ残高が登録されていません。月ごとの残高を入力すると、内訳と推移がここに表示されます。" }),
+          h("div", { cls: "field", style: "justify-content:center" }, [
+            h("button", { cls: "btn primary", type: "button", text: "残高を入力する",
+              onclick: function () { ui.tab = "input"; render(); } }),
+            h("button", { cls: "btn", type: "button", text: "サンプルデータで試す",
+              onclick: function () { loadSample(); } })
+          ])
+        ])
+      ]));
+      return frag;
+    }
+
+    resolveSelMonth();
+    var mk = ui.selMonth;
+    var pk = prevMonthKey(mk);
+    var assets = assetTotal(mk);
+    var debt = debtTotal(mk);
+    var net = netTotal(mk);
+    var hasPrev = Object.prototype.hasOwnProperty.call(state.months, pk);
+
+    /* --- フィルタ行（以下すべてに効く）。年別のときは全期間が対象なので出さない --- */
+    if (ui.gran === "month") {
+      var seg = h("div", { cls: "seg" });
+      [[6, "直近6ヶ月"], [12, "直近12ヶ月"], [0, "全期間"]].forEach(function (o) {
+        seg.appendChild(h("button", {
+          type: "button", text: o[1], "aria-pressed": ui.range === o[0] ? "true" : "false",
+          onclick: function () { ui.range = o[0]; ui.selMonth = null; render(); }
+        }));
+      });
+      frag.appendChild(h("div", { cls: "filters" }, [
+        h("span", { cls: "lbl", text: "期間" }), seg
+      ]));
+    }
+
+    /* --- ヒーロー: 負債があれば純資産、なければ総資産 --- */
+    var heroKids = [
+      h("p", { cls: "hero-label", text: monthLabel(mk) + " 時点の" + (debt ? "純資産" : "総資産") }),
+      h("div", { cls: "hero-value", text: yen(debt ? net : assets) })
+    ];
+    var dl = h("div", { cls: "hero-delta" });
+    if (!hasPrev) {
+      dl.appendChild(h("span", { cls: "delta-flat", text: "前月のデータなし" }));
+    } else {
+      var prevVal = debt ? netTotal(pk) : assetTotal(pk);
+      dl.appendChild(deltaSpan((debt ? net : assets) - prevVal, false));
+      dl.appendChild(document.createTextNode(" （前月 " + monthLabel(pk) + " 比）"));
+    }
+    heroKids.push(dl);
+    if (debt) {
+      heroKids.push(h("div", { cls: "hero-break",
+        text: "資産 " + yen(assets) + " − 負債 " + yen(debt) }));
+    }
+    frag.appendChild(h("div", { cls: "card" }, heroKids));
+
+    /* --- 種別タイル（負債を含む4枚） --- */
+    var tiles = h("div", { cls: "tiles" });
+    CATS.forEach(function (c) {
+      var v = catTotal(mk, c.key);
+      if (c.debt && !v && !anyDebt(all)) return;     /* 負債を一度も使っていなければ出さない */
+      var d = hasPrev ? v - catTotal(pk, c.key) : null;
+      var m = h("div", { cls: "m" });
+      if (c.debt) {
+        m.appendChild(document.createTextNode(v ? "資産の " + pct(v, assets) : "—"));
+      } else {
+        m.appendChild(document.createTextNode("構成比 " + pct(v, assets)));
+      }
+      if (d !== null) {
+        m.appendChild(document.createTextNode(" ・ "));
+        m.appendChild(deltaSpan(d, c.debt));        /* 負債は減ったほうが良い */
+      }
+      tiles.appendChild(h("div", { cls: "tile" }, [
+        h("div", { cls: "k" }, [swatch(c.v), h("span", { text: c.label })]),
+        h("div", { cls: "v", text: yen(v) }),
+        m
+      ]));
+    });
+    frag.appendChild(tiles);
+
+    /* --- 資産内訳 --- */
+    var donutHost = h("div", { cls: "chart-host" });
+    frag.appendChild(h("div", { cls: "card" }, [
+      h("div", { cls: "card-head" }, [
+        h("div", {}, [h("h2", { text: "資産内訳" })])
+      ]),
+      h("div", { cls: "donut-row" }, [donutHost, buildDonutLegend(mk)])
+    ]));
+    renderDonut(donutHost, mk);
+
+    /* --- 総資産推移 --- */
+    var pts = trendPoints();
+    var animate = ui.animate;
+    ui.animate = false;                     /* アニメは切り替え直後の1回だけ */
+    var trendHost = h("div", { cls: "chart-host" });
+    frag.appendChild(h("div", { cls: "card" }, [
+      h("div", { cls: "card-head" }, [
+        h("div", {}, [h("h2", { text: "総資産推移" })]),
+        h("button", {
+          cls: "btn small", type: "button",
+          /* ボタンは「いま表示しているもの」を出す。タップで切り替わる */
+          text: ui.gran === "month" ? "月別" : "年別",
+          "aria-label": ui.gran === "month"
+            ? "月別のグラフを表示中。タップで年別に切り替え"
+            : "年別のグラフを表示中。タップで月別に切り替え",
+          onclick: function () {
+            ui.gran = (ui.gran === "month") ? "year" : "month";
+            ui.animate = true;
+            render();
+          }
+        })
+      ]),
+      buildLegendRow(),
+      trendHost
+    ]));
+    setTimeout(function () { renderTrend(trendHost, pts, animate); }, 0);
+
+    return frag;
+  }
+
+  function buildLegendRow() {
+    var row = h("div", { cls: "field", style: "gap:16px;margin-bottom:10px" });
+    ASSET_CATS.forEach(function (c) {
+      row.appendChild(h("span", { style: "display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-secondary)" }, [
+        swatch(c.v), h("span", { text: c.label })
+      ]));
+    });
+    return row;
+  }
+
+  function buildDonutLegend(mk) {
+    var assets = assetTotal(mk);
+    var debt = debtTotal(mk);
+    var tb = h("table", { cls: "legend-table" });
+    tb.appendChild(h("thead", {}, [h("tr", {}, [
+      h("th", { text: "種別" }),
+      h("th", { cls: "num", text: "金額" }),
+      h("th", { cls: "num", text: "構成比" })
+    ])]));
+    var body = h("tbody");
+    ASSET_CATS.forEach(function (c) {
+      var v = catTotal(mk, c.key);
+      body.appendChild(h("tr", {}, [
+        h("td", { cls: "name" }, [swatch(c.v), h("span", { text: c.label })]),
+        h("td", { cls: "num", text: yen(v) }),
+        h("td", { cls: "num", text: pct(v, assets) })
+      ]));
+    });
+    tb.appendChild(body);
+
+    var foot = h("tfoot", {}, [h("tr", {}, [
+      h("td", { text: "資産合計" }),
+      h("td", { cls: "num", text: yen(assets) }),
+      h("td", { cls: "num", text: assets ? "100.0%" : "—" })
+    ])]);
+    if (debt) {
+      foot.appendChild(h("tr", { cls: "sub" }, [
+        h("td", { cls: "name" }, [swatch("--series-4"), h("span", { text: "負債" })]),
+        h("td", { cls: "num", text: "−" + yen(debt) }),
+        h("td", { cls: "num", text: "" })
+      ]));
+      foot.appendChild(h("tr", { cls: "net" }, [
+        h("td", { text: "純資産" }),
+        h("td", { cls: "num", text: yen(netTotal(mk)) }),
+        h("td", { cls: "num", text: "" })
+      ]));
+    }
+    tb.appendChild(foot);
+    return tb;
+  }
+
+  /* ============================== 入力タブ ============================== */
+
+  function parseYen(str) {
+    var t = String(str).replace(/[，,\s¥円]/g, "").replace(/[０-９]/g, function (d) {
+      return String.fromCharCode(d.charCodeAt(0) - 0xFEE0);
+    });
+    if (t === "" || t === "-") return 0;
+    var n = Number(t);
+    return isFinite(n) ? Math.round(n) : NaN;
+  }
+
+  function buildInput() {
+    var frag = document.createDocumentFragment();
+    var all = monthKeys();
+    if (!ui.inputMonth) ui.inputMonth = all.length ? all[all.length - 1] : thisMonthKey();
+    var mk = ui.inputMonth;
+
+    frag.appendChild(h("div", { cls: "card" }, [
+      h("div", { cls: "field" }, [
+        h("label", { cls: "fl", "for": "imonth", text: "対象の月" }),
+        h("input", {
+          type: "month", value: mk, id: "imonth",
+          onchange: function () {
+            if (/^\d{4}-\d{2}$/.test(this.value)) { ui.inputMonth = this.value; render(); }
+          }
+        }),
+        h("button", {
+          cls: "btn", type: "button", text: "前月の値をコピー",
+          onclick: function () {
+            var pk = prevMonthKey(mk);
+            var src = state.months[pk];
+            if (!src) { toast(monthLabel(pk) + " のデータがありません"); return; }
+            var dst = {};
+            Object.keys(src).forEach(function (id) { dst[id] = src[id]; });
+            state.months[mk] = dst;
+            touch(mk);
+            save();
+            toast(monthLabel(pk) + " の値をコピーしました");
+            render();
+          }
+        })
+      ]),
+      h("p", { cls: "note", text: "その月の月末残高を入力します。空欄と 0 は同じ扱いです。入力するとすぐ保存されます。" }),
+      h("p", { cls: "note", text: "負債はローンやカードの残高を、マイナスを付けずプラスの数字で入力してください（例: 住宅ローン残高 25,000,000）。" })
+    ]));
+
+    if (!state.accounts.length) {
+      frag.appendChild(h("div", { cls: "card" }, [
+        h("div", { cls: "empty" }, [
+          h("p", { text: "口座・銘柄がまだ登録されていません。" }),
+          h("button", { cls: "btn primary", type: "button", text: "口座・銘柄を追加する",
+            onclick: function () { ui.tab = "acct"; render(); } })
+        ])
+      ]));
+      return frag;
+    }
+
+    var card = h("div", { cls: "card" }, [
+      h("h2", { text: monthLabel(mk) + " の残高" }),
+      h("p", { cls: "caption", text: "種別ごとに口座・銘柄が並びます" })
+    ]);
+    var vals = state.months[mk] || {};
+
+    var elAssets = h("span", { cls: "sv" });
+    var elDebt = h("span", { cls: "sv" });
+    var elNet = h("span", { cls: "sv" });
+    var lineDebt = h("div", { cls: "sum-line" }, [h("span", { cls: "sl", text: "負債" }), elDebt]);
+    var lineNet = h("div", { cls: "sum-line total" }, [h("span", { cls: "sl", text: "純資産" }), elNet]);
+    var groupTotals = {};
+
+    function recalc() {
+      var v = state.months[mk] || {};
+      var a = 0, d = 0;
+      CATS.forEach(function (c) {
+        var g = 0;
+        state.accounts.forEach(function (acc) { if (acc.cat === c.key) g += (v[acc.id] || 0); });
+        if (groupTotals[c.key]) groupTotals[c.key].textContent = yen(g);
+        if (c.debt) d += g; else a += g;
+      });
+      elAssets.textContent = yen(a);
+      elDebt.textContent = d ? "−" + yen(d) : yen(0);
+      elNet.textContent = yen(a - d);
+      lineDebt.style.display = d ? "" : "none";
+      lineNet.querySelector(".sl").textContent = d ? "純資産" : "総資産";
+    }
+
+    CATS.forEach(function (c) {
+      var mine = state.accounts.filter(function (a) { return a.cat === c.key; });
+      if (!mine.length) return;
+      var gt = h("span", { cls: "gt" });
+      groupTotals[c.key] = gt;
+      var grp = h("div", { cls: "grp" }, [
+        h("div", { cls: "grp-h" }, [swatch(c.v), h("span", { text: c.label }), gt])
+      ]);
+      mine.forEach(function (a) {
+        var cur = vals[a.id] || 0;
+        grp.appendChild(h("div", { cls: "row" }, [
+          h("span", { cls: "rn", text: a.name }),
+          h("input", {
+            type: "text", inputmode: "numeric", cls: "yen",
+            value: cur ? cur.toLocaleString("ja-JP") : "",
+            placeholder: "0",
+            "aria-label": a.name + " の残高",
+            oninput: function () {
+              var n = parseYen(this.value);
+              if (isNaN(n)) return;
+              if (!state.months[mk]) state.months[mk] = {};
+              if (n === 0) { delete state.months[mk][a.id]; pruneMonth(mk); }
+              else state.months[mk][a.id] = n;
+              touch(mk);
+              recalc();
+              save();
+            },
+            onblur: function () {
+              var n = parseYen(this.value);
+              this.value = (isNaN(n) || n === 0) ? "" : n.toLocaleString("ja-JP");
+            }
+          })
+        ]));
+      });
+      card.appendChild(grp);
+    });
+
+    card.appendChild(h("div", { cls: "sum-bar" }, [
+      h("div", { cls: "sum-line" }, [h("span", { cls: "sl", text: "資産合計" }), elAssets]),
+      lineDebt,
+      lineNet
+    ]));
+    recalc();
+
+    card.appendChild(h("div", { cls: "field", style: "margin-top:16px" }, [
+      h("button", { cls: "btn primary", type: "button", text: "ダッシュボードで見る",
+        onclick: function () { ui.selMonth = mk; ui.tab = "dash"; render(); } })
+    ]));
+    frag.appendChild(card);
+    return frag;
+  }
+
+  /* ============================== 口座タブ ============================== */
+
+  function buildAccounts() {
+    var frag = document.createDocumentFragment();
+
+    var nameIn = h("input", { type: "text", id: "acctName", placeholder: "例: 〇〇銀行 普通預金", style: "flex:1 1 200px", "aria-label": "名称" });
+    var catIn = h("select", { "aria-label": "種別" });
+    CATS.forEach(function (c) { catIn.appendChild(h("option", { value: c.key, text: c.label })); });
+
+    function add() {
+      var nm = nameIn.value.trim();
+      if (!nm) { nameIn.focus(); return; }
+      state.accounts.push({ id: uid(), name: nm.slice(0, 60), cat: catIn.value });
+      save();
+      nameIn.value = "";
+      toast("「" + nm + "」を追加しました");
+      render();
+      var f = document.getElementById("acctName");
+      if (f) f.focus();
+    }
+    nameIn.addEventListener("keydown", function (e) { if (e.key === "Enter") add(); });
+
+    frag.appendChild(h("div", { cls: "card" }, [
+      h("h2", { text: "口座・銘柄を追加" }),
+      h("p", { cls: "caption", text: "残高を入力する単位です。銀行口座、証券口座の銘柄、iDeCo、住宅ローンなど" }),
+      h("div", { cls: "field" }, [nameIn, catIn,
+        h("button", { cls: "btn primary", type: "button", text: "追加", onclick: add })])
+    ]));
+
+    var card = h("div", { cls: "card" }, [
+      h("h2", { text: "登録済み（" + state.accounts.length + "件）" }),
+      h("p", { cls: "caption", text: "名称と種別はその場で編集できます" })
+    ]);
+
+    if (!state.accounts.length) {
+      card.appendChild(h("p", { cls: "note", text: "まだありません。" }));
+    } else {
+      CATS.forEach(function (c) {
+        var mine = state.accounts.filter(function (a) { return a.cat === c.key; });
+        if (!mine.length) return;
+        var grp = h("div", { cls: "grp" }, [
+          h("div", { cls: "grp-h" }, [swatch(c.v), h("span", { text: c.label }),
+            h("span", { cls: "gt", text: mine.length + "件" })])
+        ]);
+        mine.forEach(function (a) {
+          var cs = h("select", { "aria-label": "種別", onchange: function () { a.cat = this.value; save(); render(); } });
+          CATS.forEach(function (cc) {
+            cs.appendChild(h("option", { value: cc.key, text: cc.label, selected: cc.key === a.cat ? "selected" : null }));
+          });
+          var months = 0;
+          monthKeys().forEach(function (mk) { if (state.months[mk][a.id]) months++; });
+          grp.appendChild(h("div", { cls: "row" }, [
+            h("input", {
+              type: "text", value: a.name, style: "flex:1 1 160px", "aria-label": "名称",
+              onchange: function () {
+                var v = this.value.trim();
+                if (!v) { this.value = a.name; return; }
+                a.name = v.slice(0, 60); save(); toast("名称を変更しました");
+              }
+            }),
+            cs,
+            h("span", { cls: "hint", text: months ? months + "ヶ月分" : "データなし" }),
+            h("button", {
+              cls: "btn small danger", type: "button", text: "削除",
+              onclick: function () {
+                var msg = "「" + a.name + "」を削除します。" +
+                  (months ? months + "ヶ月分の残高データも一緒に消えます。" : "") + "よろしいですか？";
+                if (!window.confirm(msg)) return;
+                state.accounts = state.accounts.filter(function (x) { return x.id !== a.id; });
+                Object.keys(state.months).forEach(function (mk) {
+                  if (state.months[mk][a.id] === undefined) return;
+                  delete state.months[mk][a.id];
+                  pruneMonth(mk);
+                  touch(mk);
+                });
+                save(); toast("削除しました"); render();
+              }
+            })
+          ]));
+        });
+        card.appendChild(grp);
+      });
+    }
+    frag.appendChild(card);
+    return frag;
+  }
+
+  /* ============================== データタブ ============================== */
+
+  function loadSample() {
+    var ids = {};
+    state.accounts = [
+      { id: ids.a = uid(), name: "〇〇銀行 普通預金", cat: "cash" },
+      { id: ids.b = uid(), name: "生活防衛資金（定期）", cat: "cash" },
+      { id: ids.c = uid(), name: "つみたてNISA（全世界株）", cat: "equity" },
+      { id: ids.d = uid(), name: "特定口座 ETF", cat: "equity" },
+      { id: ids.e = uid(), name: "iDeCo", cat: "pension" },
+      { id: ids.f = uid(), name: "個人年金保険", cat: "pension" },
+      { id: ids.g = uid(), name: "住宅ローン", cat: "debt" }
+    ];
+    state.months = {};
+    state.touched = {};
+    var now = new Date();
+    for (var i = 11; i >= 0; i--) {
+      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      var m = d.getMonth() + 1;
+      var mk = d.getFullYear() + "-" + (m < 10 ? "0" : "") + m;
+      var t = 11 - i;
+      var wob = Math.sin(t * 1.7) * 0.035;
+      state.months[mk] = {};
+      state.months[mk][ids.a] = Math.round((820000 + t * 24000) / 1000) * 1000;
+      state.months[mk][ids.b] = 1200000;
+      state.months[mk][ids.c] = Math.round((1450000 + t * 58000) * (1 + wob) / 1000) * 1000;
+      state.months[mk][ids.d] = Math.round((680000 + t * 21000) * (1 + wob * 1.4) / 1000) * 1000;
+      state.months[mk][ids.e] = Math.round((940000 + t * 23000) * (1 + wob * 0.6) / 1000) * 1000;
+      state.months[mk][ids.f] = 300000 + t * 12000;
+      state.months[mk][ids.g] = 24800000 - t * 62000;
+      touch(mk);
+    }
+    save();
+    ui.tab = "dash";
+    ui.selMonth = null;
+    ui.inputMonth = null;
+    toast("サンプルデータを読み込みました");
+    render();
+  }
+
+  /* ---------- マージ ---------- */
+
+  function sameVals(a, b) {
+    var ka = Object.keys(a), kb = Object.keys(b);
+    if (ka.length !== kb.length) return false;
+    for (var i = 0; i < ka.length; i++) { if (a[ka[i]] !== b[ka[i]]) return false; }
+    return true;
+  }
+
+  /* 月ごとに「どちらが新しいか」を判定して取り込み計画を作る。
+     月の時刻が無い古いファイルは、ファイル全体の更新時刻で代用する */
+  function mergePlan(inc) {
+    function mt(st, mk, fb) {
+      var t = st.touched && st.touched[mk];
+      return (typeof t === "number" && isFinite(t)) ? t : fb;
+    }
+    var localT = Date.parse(state.updatedAt || "") || 0;
+    var incT = Date.parse(inc.updatedAt || "") || 0;
+    var plan = {
+      inc: inc, mt: mt, localT: localT, incT: incT, accWins: incT > localT,
+      add: [], update: [], same: [], localWins: [], localOnly: [], addAcc: [], updAcc: []
+    };
+
+    var keys = {};
+    Object.keys(state.months).forEach(function (k) { keys[k] = 1; });
+    Object.keys(inc.months).forEach(function (k) { keys[k] = 1; });
+    Object.keys(keys).sort().forEach(function (mk) {
+      var a = state.months[mk], b = inc.months[mk];
+      var ta = mt(state, mk, localT), tb = mt(inc, mk, incT);
+      if (!a) {
+        /* こちらに無い月。こちらで消した記録のほうが新しければ、消えたままにする */
+        if (state.touched && state.touched[mk] && state.touched[mk] > tb) plan.localWins.push(mk);
+        else plan.add.push(mk);
+        return;
+      }
+      if (!b) { plan.localOnly.push(mk); return; }
+      if (sameVals(a, b)) { plan.same.push(mk); return; }
+      if (tb > ta) plan.update.push(mk); else plan.localWins.push(mk);
+    });
+
+    var byId = {};
+    state.accounts.forEach(function (a) { byId[a.id] = a; });
+    inc.accounts.forEach(function (a) {
+      if (!byId[a.id]) plan.addAcc.push(a);
+      else if (byId[a.id].name !== a.name || byId[a.id].cat !== a.cat) plan.updAcc.push(a);
+    });
+    return plan;
+  }
+
+  function applyMerge(plan) {
+    var inc = plan.inc;
+    plan.addAcc.forEach(function (a) { state.accounts.push({ id: a.id, name: a.name, cat: a.cat }); });
+    if (plan.accWins) {
+      plan.updAcc.forEach(function (a) {
+        var t = acctById(a.id);
+        if (t) { t.name = a.name; t.cat = a.cat; }
+      });
+    }
+    if (!state.touched) state.touched = {};
+    plan.add.concat(plan.update).forEach(function (mk) {
+      var dst = {};
+      Object.keys(inc.months[mk]).forEach(function (id) { dst[id] = inc.months[mk][id]; });
+      state.months[mk] = dst;
+      state.touched[mk] = plan.mt(inc, mk, plan.incT);
+    });
+    save();
+  }
+
+  function askImport(inc, resetInput) {
+    var plan = mergePlan(inc);
+    var taken = plan.add.length + plan.update.length;
+    var changes = taken + plan.addAcc.length + (plan.accWins ? plan.updAcc.length : 0);
+    var incNewer = plan.incT > plan.localT;
+
+    function row(label, n, unit, desc) {
+      var r = h("div", { cls: "dr" }, [
+        h("span", { text: label }),
+        h("span", { cls: "dn", text: n + unit })
+      ]);
+      if (desc && n) r.appendChild(h("span", { cls: "dd", text: desc }));
+      return r;
+    }
+
+    var stamps = h("div", { cls: "stamps" }, [
+      h("div", { cls: "stamp" + (incNewer ? " newer" : "") }, [
+        h("div", { cls: "sk", text: "読み込むファイル" }),
+        h("div", { cls: "sv", text: fmtStamp(inc.updatedAt) }),
+        incNewer ? h("div", { cls: "tag", text: "こちらが新しい" }) : null
+      ]),
+      h("div", { cls: "stamp" + (incNewer ? "" : " newer") }, [
+        h("div", { cls: "sk", text: "今のデータ" }),
+        h("div", { cls: "sv", text: fmtStamp(state.updatedAt) }),
+        incNewer ? null : h("div", { cls: "tag", text: "こちらが新しい" })
+      ])
+    ]);
+
+    var diff = h("div", { cls: "diff" }, [
+      row("追加される月", plan.add.length, "ヶ月"),
+      row("上書きされる月", plan.update.length, "ヶ月", "ファイル側が新しいもの"),
+      row("今のデータを残す月", plan.localWins.length, "ヶ月", "こちらのほうが新しいもの"),
+      row("変更なし", plan.same.length, "ヶ月"),
+      plan.localOnly.length ? row("ファイルに無い月", plan.localOnly.length, "ヶ月", "そのまま残ります") : null,
+      row("追加される口座", plan.addAcc.length, "件")
+    ]);
+
+    modal({
+      title: "読み込む内容の確認",
+      lead: changes
+        ? "マージすると、月ごとに新しいほうだけを取り込みます。今のデータは消えません。"
+        : "取り込む変更はありませんでした。",
+      body: [stamps, diff],
+      actions: [
+        {
+          label: changes ? "マージする（推奨）" : "閉じる", cls: "primary",
+          onClick: function () {
+            if (!changes) return;
+            applyMerge(plan);
+            ui.selMonth = null; ui.inputMonth = null; ui.tab = "dash";
+            toast(taken + "ヶ月ぶんを取り込みました");
+            render();
+          }
+        },
+        {
+          label: "まるごと置き換える", cls: "danger",
+          onClick: function () {
+            if (!window.confirm("今のデータを全て捨てて、ファイルの内容に置き換えます。取り消せません。よろしいですか？")) return;
+            state = inc;
+            save();
+            ui.selMonth = null; ui.inputMonth = null; ui.tab = "dash";
+            toast("置き換えました");
+            render();
+          }
+        },
+        { label: "キャンセル" }
+      ]
+    });
+    resetInput();
+  }
+
+  function download(name, blob) {
+    var url = URL.createObjectURL(blob);
+    var a = h("a", { href: url, download: name });
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function buildData() {
+    var frag = document.createDocumentFragment();
+    var all = monthKeys();
+
+    frag.appendChild(h("div", { cls: "card" }, [
+      h("h2", { text: "バックアップ" }),
+      h("p", { cls: "caption", text: "データはこの端末の中だけに保存されます。機種変更や再インストールに備えて、ときどき書き出してください。" }),
+      h("div", { cls: "field" }, [
+        h("button", {
+          cls: "btn primary", type: "button", text: "JSONで書き出す",
+          onclick: function () {
+            download("myasset-" + thisMonthKey() + ".json",
+              new Blob([JSON.stringify(state, null, 2)], { type: "application/json" }));
+            toast("書き出しました");
+          }
+        }),
+        h("button", {
+          cls: "btn", type: "button", text: "CSVで書き出す",
+          onclick: function () {
+            var rows = [["月", "種別", "口座・銘柄", "残高"]];
+            all.forEach(function (mk) {
+              CATS.forEach(function (c) {
+                state.accounts.filter(function (a) { return a.cat === c.key; }).forEach(function (a) {
+                  var v = state.months[mk][a.id] || 0;
+                  if (v) rows.push([mk, c.label, a.name, c.debt ? -v : v]);
+                });
+              });
+            });
+            var csv = rows.map(function (r) {
+              return r.map(function (x) { return '"' + String(x).replace(/"/g, '""') + '"'; }).join(",");
+            }).join("\r\n");
+            download("myasset-" + thisMonthKey() + ".csv",
+              new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+            toast("書き出しました（Excel で開けます）");
+          }
+        })
+      ]),
+      h("p", { cls: "note", text: "現在 " + state.accounts.length + "件の口座・銘柄、" + all.length + "ヶ月分のデータ" }),
+      h("p", { cls: "note", text: "最終更新: " + fmtStamp(state.updatedAt) }),
+      h("p", { cls: "note", text: "CSV では負債の残高をマイナスの数字で書き出します。CSV は閲覧用で、読み込みには使えません。" })
+    ]));
+
+    frag.appendChild(h("div", { cls: "card" }, [
+      h("h2", { text: "読み込み（別の端末と同期）" }),
+      h("p", { cls: "caption", text: "もう一方の端末で書き出した JSON を選ぶと、差分を確認したうえでマージできます" }),
+      h("input", {
+        type: "file", accept: ".json,application/json",
+        onchange: function () {
+          var f = this.files && this.files[0];
+          if (!f) return;
+          var self = this;
+          var reset = function () { self.value = ""; };
+          var fr = new FileReader();
+          fr.onload = function () {
+            var parsed;
+            try { parsed = JSON.parse(String(fr.result)); }
+            catch (e) { toast("JSONとして読めませんでした"); reset(); return; }
+            var next = sanitize(parsed);
+            if (!next.accounts.length && !Object.keys(next.months).length) {
+              toast("読み込める内容が見つかりませんでした"); reset(); return;
+            }
+            askImport(next, reset);
+          };
+          fr.readAsText(f);
+        }
+      }),
+      h("p", { cls: "note", text: "マージは月単位です。同じ月を両方の端末で編集した場合は、あとから編集したほうが残ります。" })
+    ]));
+
+    frag.appendChild(h("div", { cls: "card" }, [
+      h("h2", { text: "その他" }),
+      h("div", { cls: "field", style: "margin-top:10px" }, [
+        h("button", { cls: "btn", type: "button", text: "サンプルデータを読み込む", onclick: function () {
+          if (all.length && !window.confirm("現在のデータはサンプルで置き換えられます。よろしいですか？")) return;
+          loadSample();
+        } }),
+        h("button", {
+          cls: "btn danger", type: "button", text: "すべて削除",
+          onclick: function () {
+            if (!window.confirm("口座・銘柄と全ての残高データを削除します。取り消せません。よろしいですか？")) return;
+            state = { version: 2, updatedAt: new Date().toISOString(), touched: {}, accounts: [], months: {} };
+            lsDel(LS_DATA);
+            save();
+            ui.selMonth = null; ui.inputMonth = null;
+            toast("削除しました");
+            render();
+          }
+        })
+      ]),
+      h("p", { cls: "note", text: "保存先: この端末のブラウザ（localStorage）。サーバーには送られません。" })
+    ]));
+
+    return frag;
+  }
+
+  /* ============================== 描画 ============================== */
+
+  var view = document.getElementById("view");
+
+  function render() {
+    document.getElementById("storageWarn").style.display = storageOK ? "none" : "block";
+    Array.prototype.forEach.call(document.querySelectorAll("nav.tabs button"), function (b) {
+      b.setAttribute("aria-selected", b.getAttribute("data-tab") === ui.tab ? "true" : "false");
+    });
+    clear(view);
+    if (ui.tab === "dash") view.appendChild(buildDash());
+    else if (ui.tab === "input") view.appendChild(buildInput());
+    else if (ui.tab === "acct") view.appendChild(buildAccounts());
+    else view.appendChild(buildData());
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll("nav.tabs button"), function (b) {
+    b.addEventListener("click", function () { ui.tab = b.getAttribute("data-tab"); render(); });
+  });
+
+  var rzTimer = null;
+  window.addEventListener("resize", function () {
+    if (ui.tab !== "dash") return;
+    if (rzTimer) clearTimeout(rzTimer);
+    rzTimer = setTimeout(render, 160);
+  });
+
+  render();
+})();
+</script>
+<script>
+/* Service Worker — オフライン起動用。file:// で直接開いたときは登録しない */
+if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function (err) {
+      console.warn("Service Worker を登録できませんでした:", err);
+    });
+  });
+}
+</script>
+</body>
+</html>
