@@ -7,7 +7,7 @@
  * 下の CACHE の番号を1つ上げてから push すると、古いキャッシュが捨てられる。
  * 例: myasset-v2 → myasset-v3
  */
-const CACHE = "myasset-v4";
+const CACHE = "myasset-v5";
 
 const ASSETS = [
   "./",
